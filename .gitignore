@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Arduino
+*.hex
+*.elf
+build/
+.pio/
+.pioenvs/
+.piolibdeps/
