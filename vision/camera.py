@@ -1,3 +1,4 @@
+#color wheel wraps around so red hue is 0-10 and 170-180
 import cv2
 import serial
 import time
@@ -6,9 +7,9 @@ import sys
 #values found for specific lighting using calibrate_color.py
 color_ranges = {
     #"red": (np.array([, ,]), np.array([, ,]))
-    #"green": (np.array([, ,]), np.array([, ,]))
-    #"blue": (np.array([, ,]), np.array([, ,]))
-    #"white": (np.array([, ,]), np.array([, ,]))
+    "green": (np.array([40, 100, 80]), np.array([80, 255, 255]))
+    "blue": (np.array([100, 100, 80]), np.array([130, 255, 255]))
+    "white": (np.array([0, 0, 200]), np.array([179, 30, 255]))
 }
 
 def setup_arduino(port='COM5', baud=9600):
@@ -25,9 +26,16 @@ def setup_camera():
         sys.exit("couldn't open camera")
     return cap
 
+def setup_aruco():
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    parameters = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+    return detector
+
 def main():
     arduino = setup_arduino()
     cap = setup_camera()
+    detector = setup_aruco()
     
     while True:
         ret, frame = cap.read()
@@ -35,8 +43,19 @@ def main():
             print("Error: couldn't read frame")
             break
 
-        #TODO: hsv_roi using aruco
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        corners, ids, rejected = detector.detectMarkers(frame)
+        if len(ids) == 4:
+            top_left = corners[np.where(ids == 0)[0][0]][0][3]
+            top_right = corners[np.where(ids == 1)[0][0]][0][2]
+            bottom_left = corners[np.where(ids == 2)[0][0]][0][0]
+            bottom_right = corners[np.where(ids == 3)[0][0]][0][1]
+
+            #get perspective transform and warp******
+            roi = frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
+        else:
+            #what do i do else************
+
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         
         color = "misc"
         best_area = 500 #set to minimum area first 500 seems good
